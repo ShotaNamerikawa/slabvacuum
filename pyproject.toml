@@ -2,12 +2,13 @@
 name = "pilecrystal"
 version = "0.1.0"
 description = ""
-authors = ["= <=>"]
+authors = ["Shota Namerikawa <shota.namerikawa@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
 pymatgen = "^2024.1.27"
+pytest = "^8.3.4"
 
 
 [build-system]
