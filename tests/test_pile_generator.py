@@ -1,37 +1,28 @@
-from pilecrystal.pile_generator import set_layers, get_layered_cif, get_slab
+import numpy as np
+from pilecrystal.pile_generator import get_slab_vac_cif, cli_get_slab_cif
 from pymatgen.core import Structure
-from pymatgen.core.surface import SlabGenerator
+import pytest
 from click.testing import CliRunner
 
-def test_set_layers():
-    structrue = Structure.from_file("tests/models/Mn2VGa.cif") 
-    slabgen = SlabGenerator(structrue,[0,0,1],10,10)
-    n_layers_slab = 2
-    n_layers_vac = 2
-    set_layers(slabgen, n_layers_slab, n_layers_vac)
-    slabs = slabgen.get_slabs()
-    anum=0
-    for specie in slabs[0].species:
-        if "Mn" in str(specie):
-            anum += 1 
-    assert anum == 16
+
+def test_get_slab_vac_cif(min_slab_size, min_vacuum_size, tmp_path):
+    cubic_structure = Structure(np.array([[1,0,0],[0,1,0],[0,0,1]]), ["A"], [0,0,0])
+    get_slab_vac_cif(cubic_structure, min_slab_size, min_vacuum_size, in_unit_planes=True, 
+                     slab_cif_prefix = tmp_path/"slab", 
+                     frac_coords_on_surface_plane=[[0,0,1],[1,0,1],[0,1,1]])
+    slab_structure = Structure.from_file(tmp_path/"slab.cif")
+    assert slab_structure.lattice.a[2,2] == (min_vacuum_size+min_slab_size)*cubic_structure.lattice.a[2,2]
     
-def test_get_cif(tmp_path):
+
+def test_cli_get_slab_cif():
+    runner = CliRunner()
+    arg_list = (structure, [0,0,1], 5, 5, slab_cif_prefix=os.path.join("tests/models","layered"))
+    result = runner.invoke(cli_get_slab_cif, 
+                           arg_list # List of arguments of the function decorated by click.command
+                           )
+    assert result.exit_code == 0 # 0 means success
+    # assert result.output == output_of_command
+
     cif_file = "tests/models/Mn2VGa.cif"
     structure = Structure.from_file(cif_file)
-    get_layered_cif(structure, [0,0,1], 5, 5, slab_cif_name= tmp_path)
-    
-def test_cli(tmp_path):
-    # FIXME: make a bulk file from a Structure instance in this method.
-    runner = CliRunner()
-    result = runner.invoke(get_slab, 
-                           ["tests/models/Mn2VGa.cif", 
-                            (0,0,1),
-                            5,
-                            5,
-                            tmp_path,
-                            None])
-    assert result.exit_code == 0
-    with open(tmp_path) as fp:
-        # add test cif parameter by converting it to Structure.
-        pass
+    get_slab_vac_cif()
