@@ -10,6 +10,8 @@ python = "^3.11"
 pymatgen = "^2024.1.27"
 pytest = "^8.3.4"
 
+[tool.poetry.scripts]
+get_slab_cif = "pilecrystal.pile_generator:cli_get_slab_cif"
 
 [build-system]
 requires = ["poetry-core"]
