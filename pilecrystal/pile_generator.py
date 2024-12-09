@@ -1,3 +1,4 @@
+import numpy as np
 from typing import Iterable
 
 from pymatgen.core.surface import SlabGenerator
@@ -11,7 +12,7 @@ def get_slab_vac_cif(structure:Structure,
                     in_unit_planes = True, 
                     slab_cif_prefix:str="layered", 
                     miller_index:Iterable|None = None,
-                    frac_coords_on_surface_plane:None|Iterable = None,
+                    frac_coords_on_surface:None|Iterable = None,
                     **slabgen_kwargs):
     """get a cif file of slab-vacuum system from bulk Structure
 
@@ -35,7 +36,7 @@ def get_slab_vac_cif(structure:Structure,
         , by default "layered"
     miller_index : Iterable | None, optional
         miller index of a plane parallel to the atomic plane, 
-        If this keyword is not specified, coords_on_surface_plane argument must be specified.
+        If this keyword is not specified, coords_on_surface_plane argument must be specified,
         by default None
     frac_coords_on_surface_plane : None | Iterable, optional
         fractional coordinates of at least 3 points on an atomic plane parallel to the surface plane, by default None
@@ -45,35 +46,38 @@ def get_slab_vac_cif(structure:Structure,
     ValueError
         _description_
     """
-    if (not miller_index) and (not frac_coords_on_surface_plane):
+    if (not miller_index) and (type(frac_coords_on_surface) == None):
         raise ValueError("Neither miller_index nor coords_on_surface_plane is not given.")
-    if frac_coords_on_surface_plane:
-        if type(min_slab_size) == int or type(min_vacuum_size) == int:
+    if type(frac_coords_on_surface) != None:
+        if type(min_slab_size) != int or type(min_vacuum_size) != int:
             raise TypeError("the type of min_slab_size and min_vacuum_size must be integer.")
-        miller_index = structure.get_miller_index_from_site_indexes(frac_coords_on_surface_plane)
-    slabgen = SlabGenerator(structure, miller_index, min_slab_size, min_vacuum_size, in_unit_planes=in_unit_planes, *slabgen_args, **slabgen_kwargs)
+        miller_index = structure.lattice.get_miller_index_from_coords(frac_coords_on_surface, coords_are_cartesian=False)
+    slabgen = SlabGenerator(structure, miller_index, min_slab_size, min_vacuum_size, *slabgen_args, in_unit_planes=in_unit_planes, **slabgen_kwargs)
     slabs = slabgen.get_slabs()
     cif_str = slabs[0].to(filename=".cif")
+    
+    slab_cif_prefix = str(slab_cif_prefix)
     with open(slab_cif_prefix + ".cif", 'w') as fp:
         fp.write(cif_str)
         
 @click.command()
 @click.argument("bulk_cif")
-@click.argument("min_slab_size")
-@click.argument("min_vacuum_size")
+@click.argument("min_slab_size", type = int)
+@click.argument("min_vacuum_size", type = int)
 @click.option("--primitive_bulk",type = bool, default = False)
 @click.option("--size_in_unit_planes", type = bool, default = True)
 @click.option("--cif_prefix", default = "layered")
 @click.option("--miller_index", nargs = 3, type = int)
-@click.option("--points_on_plane", nargs = 9, type = int)
-def cli_get_slab_cif(bulk_cif:str, min_slab_size:int|float, 
-                      min_vacuum_size:int|float, 
-                      primitive_bulk:bool = False,
-                      size_in_unit_planes:bool = True,
-                      miller_index:None|Iterable = None,
-                      points_on_plane:None|Iterable = None,
-                      cif_prefix:str = "layered"
-                      ):
+@click.option("--points_on_surface", nargs = 9, type = float)
+def cli_get_slab_cif(bulk_cif:str, 
+                     min_slab_size:int|float, 
+                    min_vacuum_size:int|float, 
+                    primitive_bulk:bool = False,
+                    size_in_unit_planes:bool = True,
+                    miller_index:None|Iterable = None,
+                    points_on_surface:None|Iterable = None,
+                    cif_prefix:str = "layered"
+                    ):
     """generate a slab cif file from a bulk cif file.
 
     Parameters
@@ -81,29 +85,36 @@ def cli_get_slab_cif(bulk_cif:str, min_slab_size:int|float,
     bulk_cif : str
         the file name of a bulk cif file from which a corresponding bulk file is generated
     min_slab_size : int | float
-        the number of layers or the distance of the surface plane from the origin.
+        the number of or the thickness in angstrom of the slab layers.
     min_vacuum_size : int | float
-        _description_
+        the number of or the thickness in angstrom of the vacuum layer.
     primitive_bulk : bool, optional
-        _description_, by default False
+        convert bulk unit cell into primitive, by default False
     size_in_unit_planes : bool, optional
         min_**_size is in unit of minimum distance to atomic planes, 
         If False, min_**_size is in unit of Angstrom
         by default True
     miller_index : None | Iterable, optional
         miller_index of an atomic plane parallel to the surface plane, by default None
-    points_on_plane : None | Iterable, optional
+    points_on_surface : None | Iterable, optional
         fractional coordinates of 3 points on a surface plane, by default None
     cif_prefix : str, optional
         prefix of the generated slab cif file name, by default "layered"
     """
+    if (not miller_index) and (not points_on_surface):
+        # NOTE: click prints only the errors defined in click.
+        raise click.ClickException("Neither miller_index nor coords_on_surface_plane is not given.")
     bulk_structure = Structure.from_file(bulk_cif, primitive= primitive_bulk)
-    get_slab_vac_cif(bulk_structure, 
-                     min_slab_size, 
-                     min_vacuum_size, 
-                     slab_cif_prefix= cif_prefix,
-                     miller_index= miller_index, 
-                     frac_coords_on_surface_plane= points_on_plane,
-                     in_unit_planes= size_in_unit_planes)
+    try:
+        get_slab_vac_cif(bulk_structure, 
+                         min_slab_size, 
+                         min_vacuum_size, 
+                         slab_cif_prefix= cif_prefix,
+                         miller_index= miller_index, 
+                         frac_coords_on_surface= np.array(points_on_surface).reshape([-1,3]) if points_on_surface else points_on_surface,
+                         in_unit_planes= size_in_unit_planes)
+    except:
+        raise click.ClickException("Error.")
     
-        
+if __name__ == "__main__":
+    cli_get_slab_cif()  
