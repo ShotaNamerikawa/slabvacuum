@@ -6,7 +6,7 @@ A small package to create slab-vacuum-system cif files from those of bulks.
 
 From your terminal, execute
 ```
-pip install https://github.com/ShotaNamerikawa/slabvacuum.git
+pip install git+https://github.com/ShotaNamerikawa/slabvacuum.git
 ```
 
 ## How to use
