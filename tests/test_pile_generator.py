@@ -4,7 +4,7 @@ import pytest
 from click.testing import CliRunner
 from pathlib import Path
 
-from pilecrystal.pile_generator import get_slab_vac_cif, cli_get_slab_cif
+from slabvacuum.pile_generator import get_slab_vac_cif, cli_get_slab_cif
 
 @pytest.mark.parametrize(["min_slab_size", "min_vacuum_size"], [(10,5)])
 def test_get_slab_vac_cif(min_slab_size, min_vacuum_size, tmp_path):
@@ -18,7 +18,9 @@ def test_get_slab_vac_cif(min_slab_size, min_vacuum_size, tmp_path):
     print(slab_structure.sites)
     
 @pytest.mark.parametrize(["bulk_cif", "min_slab_size", "min_vacuum_size", "miller_index_or_frac_coords_dict"], 
-                         [("tests/models/Mn2VGa.cif",10,5,dict(miller_index = (0,0,10)))])
+                         [("tests/models/Mn2VGa.cif",10,5,dict(miller_index = (0,0,10))),
+                          ("tests/models/Mn2VGa.cif",10,5,dict(frac_coords_on_surface = [[0,0,1],[1,0,1],[1,0,1]]))
+                          ])
 def test_get_slab_vac_cif_from_file(bulk_cif, min_slab_size, min_vacuum_size, miller_index_or_frac_coords_dict, tmp_path):
     structure = Structure.from_file(bulk_cif)
     get_slab_vac_cif(structure, min_slab_size, min_vacuum_size, in_unit_planes=True, 

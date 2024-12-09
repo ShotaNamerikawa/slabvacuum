@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "pilecrystal"
+name = "slabvacuum"
 version = "0.1.0"
 description = ""
 authors = ["Shota Namerikawa <shota.namerikawa@gmail.com>"]
@@ -11,7 +11,7 @@ pymatgen = "^2024.1.27"
 pytest = "^8.3.4"
 
 [tool.poetry.scripts]
-get_slab_cif = "pilecrystal.pile_generator:cli_get_slab_cif"
+get_slab_cif = "slabvacuum.pile_generator:cli_get_slab_cif"
 
 [build-system]
 requires = ["poetry-core"]
